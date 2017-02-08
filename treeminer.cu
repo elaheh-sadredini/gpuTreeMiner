@@ -1,4 +1,3 @@
-#include<iostream>
 #include <string>
 #include <unistd.h>
 #include <stdio.h>
@@ -142,12 +141,6 @@ void get_F1() {
 	DBASE_NUM_TRANS = 0;
 
 	while (DCB->get_next_trans()) {
-		//cout << "TRANS " << DCB->Cid << " " << DCB->Tid
-		//     << " " << DCB->TransSz << " -- ";
-		//for (i=0; i < DCB->TransSz; i++)
-		//   cout << " " << DCB->TransAry[i];
-		//cout << endl;
-
 		for (i = 0; i < DCB->TransSz; i++) {
 			it = DCB->TransAry[i];
 			if (it != BranchIt) {
@@ -157,7 +150,6 @@ void get_F1() {
 						flgs.push_back(-1);
 					}
 					DBASE_MAXITEM = it + 1;
-					//cout << "IT " << DBASE_MAXITEM << endl;
 				}
 
 				if (count_unique) {
@@ -167,7 +159,6 @@ void get_F1() {
 						flgs[it] = DCB->Cid;
 				}
 				itcnt[it]++;
-
 			}
 		}
 
@@ -175,13 +166,6 @@ void get_F1() {
 			DCB->MaxTransSz = DCB->TransSz;
 		DBASE_NUM_TRANS++;
 	}
-
-	//for (i=0; i < DCB->TransSz; i++){
-	//   it = DCB->TransAry[i];
-	//   if (it != BranchIt){
-	//      cout << it << " " << itcnt[it] << endl;
-	//   }
-	//}
 
 	//set the value of MINSUPPORT
 	if (MINSUPPORT == -1)
@@ -233,6 +217,13 @@ void get_F1() {
 	stats.add(DBASE_MAXITEM, DCB->NumF1, te);
 }
 
+void print_array(int* array, int size) {
+	for (int i=0; i<size; i++) {
+		cout << array[i] << " ";
+	}
+	cout << endl;
+}
+
 void get_F2() {
 	int i, j;
 	int it1, it2;
@@ -264,56 +255,58 @@ void get_F2() {
 	vector<int>* freqCand;
 	int nod_num = 0;
 
-	//int DB_starting_point=0;
-	//DCB->DB_1D_array_starting.push_back(DB_starting_point);
 	while (DCB->get_next_trans()) {
+		//cout << "Before pruning: " << endl;
+		//print_array(DCB->TransAry, DCB->TransSz);
 		nod_num = 0;
+
 		DCB->get_valid_trans();
-		if(DCB->TransSz > 2)
-		tot_trans_cnt++;
+		//cout << "After pruning: " << endl;
+		//print_array(DCB->TransAry, DCB->TransSz);
 
 		//Elaheh: creating DB array with the valid transaction (removing infrequent items), the size of the transaction will be decreased here.
-		if(DCB->TransSz != 0) {
+		if(DCB->TransSz > 1) {
+			tot_trans_cnt++;
+
 			DCB->DB_array[tree_id] = new int[DCB->TransSz + 2];
             DCB->DB_array_size+= DCB->TransSz+1;
-			//DB_starting_point += (DCB->TransSz + 1);
 			DCB->DB_array[tree_id][0] = DCB->TransSz;
 			for (int trans_iter = 0; trans_iter < DCB->TransSz; trans_iter++) {
 				DCB->DB_array[tree_id][trans_iter + 2] = DCB->TransAry[trans_iter];
-				//DCB->DB_1D_array.push_back(DCB->TransAry[trans_iter]);
 				if(DCB->TransAry[trans_iter] != BranchIt){ //Number of nodes in one transaction
 				nod_num++;
 				}
 			}
 			DCB->DB_array[tree_id][1]=nod_num;
 			tree_sz_mp.insert(pair<int,int>(nod_num,tree_id));
-			//DCB->DB_1D_array_starting.push_back(DB_starting_point);
 			tree_id++;
 
 		//count a pair only once per cid
 		for (i = 0; i < DCB->TransSz; i++) {
 			it1 = DCB->TransAry[i];
-			if (it1 != BranchIt) {
+			if (it1 != BranchIt && it1 != DCB->NumF1) {
 				scnt = 0;
+
 				for (j = i + 1; scnt >= 0 && j < DCB->TransSz; j++) {
 					it2 = DCB->TransAry[j];
-					if (it2 != BranchIt) {
+					if (it2 != BranchIt && it2 != DCB->NumF1) {
 						scnt++;
 						if (count_unique) {
+
 							if (flgs[it1][it2] == DCB->Cid)
 								continue;
+
 							else
 								flgs[it1][it2] = DCB->Cid;
-						}
-						//cout << "cnt " << it1 << " " << it2 << endl;
+								}
 						itcnt2[it1][it2]++;
-                        
 					} else
 						scnt--;
 				}
 			}
 		}
-	}
+	} else
+			continue;
 }
 
 		//Sorting the dataset and making treeSz_loc_map to see the location of tree size in the database
@@ -977,7 +970,7 @@ void get_Fk() {
 	cudaError_t err;
 	int* trees_d;
 	int* tr_start_ind_d;
-	int* freq_result_d; //it is used for the portion of the candidates on the constant memory
+	int* freq_result_d;
 	int* cand_d;
 	int* cand_h;
 
@@ -999,6 +992,8 @@ void get_Fk() {
 		candidate_generation(iter, CandK, candcnt);
 
 		cand_h = create_cand_array(candcnt,iter);
+		cout << "candidate array: " << endl;
+		//print_array(cand_h, candcnt*(2*iter-1));
 
 		if (candcnt > 0) {
 
@@ -1014,7 +1009,7 @@ void get_Fk() {
 				int threadNum = block_dim;
 
 				//int blockNum = (DCB->blk_count_h> 65535) ? 65535 : DCB->blk_count_h;
-				int blockNum = (DBASE_NUM_TRANS/threadNum > 65535) ? 65535 : DBASE_NUM_TRANS/threadNum;
+				int blockNum = (DBASE_NUM_TRANS/threadNum > 65535) ? 65535 : (DBASE_NUM_TRANS-1)/threadNum+1;
 
 				frequency_counter<<<blockNum,threadNum>>>(trees_d, tr_start_ind_d,
 						DBASE_NUM_TRANS, iter, candcnt, cand_d, freq_result_d);
@@ -1026,11 +1021,11 @@ void get_Fk() {
 			if (prune_type == prune)
 				FK.clearall();
 
-//			for(int i=0; i<candcnt; i++){6 9
+			for(int i=0; i<candcnt; i++){
 
-//				cout << freq_result_d[i] << " ";
-//			}
-//			cout << endl;
+				cout << freq_result_d[i] << " ";
+			}
+			cout << endl;
 			if (prune_type == prune){
 				//FK.clearall();
 				erase_set(freq_cand);
@@ -1064,12 +1059,14 @@ void create_gpu_stats(){
     DCB->tr_start_ind_h = new int[DBASE_NUM_TRANS];
     
     for(int i=0; i<DBASE_NUM_TRANS; i++){
-        for(int j=0; j<DCB->DB_array[i][0]+1; j++){
-            DCB->trees_h[trees_h_it] = DCB->DB_array[i][j];
-            if(j==0){
-                DCB->tr_start_ind_h[tr_start_ind_h_it] = trees_h_it;
-                tr_start_ind_h_it++;
-            }
+        DCB->trees_h[trees_h_it] = DCB->DB_array[i][0];
+        DCB->tr_start_ind_h[tr_start_ind_h_it] = trees_h_it;
+        tr_start_ind_h_it++;
+        trees_h_it++;
+
+        for(int j=0; j<DCB->DB_array[i][0]; j++){
+        	//cout << DCB->DB_array[i][j] << endl;
+            DCB->trees_h[trees_h_it] = DCB->DB_array[i][j+2];
             trees_h_it++;
             
             if(trees_h_it>DCB->DB_array_size){
@@ -1080,6 +1077,9 @@ void create_gpu_stats(){
     }
 }
 
+void prune_infrq_nodes() {
+  
+}
 
 int main(int argc, char **argv) {
 
@@ -1089,6 +1089,7 @@ int main(int argc, char **argv) {
 
 	DCB = new Dbase_Ctrl_Blk(infile->c_str());
 	get_F1();
+	prune_infrq_nodes(); //prune dataset from infrequent nodes 
 	get_F2();
 
 	cudaDeviceProp  prop;
@@ -1097,7 +1098,7 @@ int main(int argc, char **argv) {
 	warp_size=prop.warpSize;
 
 
-    create_gpu_stats();
+	create_gpu_stats();
 
 	get_Fk();
 
@@ -1142,6 +1143,7 @@ int main(int argc, char **argv) {
 }
 
 //TODOs
+//After pruning, check the number of nodes are more than 2, not the array size
 //Sorting the tree --> add convergence + delete kardane size koochik ba bozorg shodane candidates ha
 //Atomic add --> c
 

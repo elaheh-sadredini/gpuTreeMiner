@@ -1,0 +1,17 @@
+#treeminer.cu#
+calcdb.h.gch
+calcdb.o
+cuda.h.gch
+cuda_kernel.o
+eqclass.o
+ftm_gpu_shared
+hashtree.o
+stats.o
+treeminer.o
+.gitignore~
+rtags
+summary.out
+GPATH
+GRTAGS
+GSYMS
+GTAGS

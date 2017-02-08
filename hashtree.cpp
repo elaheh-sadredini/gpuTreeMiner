@@ -8,7 +8,6 @@ int HashTree::theCount=0;
 int HashTree::theThreshold=DEF_THRESHOLD;
 int HashTree::theMaxDepth=0;
  
-
 HashTree::HashTree (int depth)
 {
    theDepth = depth;

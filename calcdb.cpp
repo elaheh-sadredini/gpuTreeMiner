@@ -125,9 +125,6 @@ int Dbase_Ctrl_Blk::get_next_trans ()
       return 1;
    }
    else{
-      //fd.seekg(0,ios::cur);
-      //if (fd.tellg() == endpos) readall = 1;
-
       if ((int)fd.tellg() == endpos-1){
          readall = 1;
          first = 1;
@@ -186,36 +183,24 @@ void Dbase_Ctrl_Blk::get_next_trans_ext()
 }
 
 
-//Elaheh: add transaction size to the beginning of the TransAry for making DB_array
+//Elaheh: remove infrequent items from the input transactions and add transaction size to the beginning of the TransAry for making DB_array
+// Also, re-map the frequent items in the dataset to the items from 0 to F1
 void Dbase_Ctrl_Blk::get_valid_trans()
 {
    int i,j;
    const int invalid=-3; //-3 does not appear in original trans
-   
+
    if (PvtTransAry == NULL)
       PvtTransAry = new int [MaxTransSz];
-   
-   //remove infreq items
-   //cout << "ORIG " << endl;
-   //for (i=0; i < TransSz; i++)
-   //   cout << TransAry[i] << " ";
-   //cout << endl;
-   //cout << "ORIGV " << endl;
-   //for (i=0; i < TransSz; i++)
-   //   if (TransAry[i] != -1 && theFreqMap[TransAry[i]] == -1)
-   //      cout << "-3 ";
-   //   else   cout << TransAry[i] << " ";
-   //cout << endl;
-   
 
-   for (i=0; i < TransSz; i++){      
+   //remove infrequent items
+     for(i=1; i < TransSz; i++){ //Separate the root (treat differently)
       if (TransAry[i] != invalid){
-         if (TransAry[i] != BranchIt){   
-            if (FreqMap[TransAry[i]] == -1){
-               //set item to invalid and the next -1 to invalid
+         if (TransAry[i] != BranchIt){
+            if (FreqMap[TransAry[i]] == -1){//If it was not frequent, then, set item and the next -1 to invalid
                TransAry[i] = invalid;
                int cnt=0;
-               
+
                for(j=i+1; j < TransSz && cnt >= 0; j++){
                   if (TransAry[j] != invalid){
                      if (TransAry[j] == BranchIt) cnt--;
@@ -224,30 +209,27 @@ void Dbase_Ctrl_Blk::get_valid_trans()
                }
                TransAry[--j] = invalid;
             }
-         }
+          }
+        }
       }
+
+   //Copy the root
+   int start=0;
+   if (FreqMap[TransAry[0]] == -1){
+	   PvtTransAry[0] = NumF1;
+	   start = 1;
    }
-   
-   //cout << "VALID " << endl;
-   //for (i=0; i < TransSz; i++)
-   //   cout << TransAry[i] << " ";
-   //cout << endl;
 
    //copy valid items to PvtTransAry
-   for (i=0,j=0; i < TransSz; i++){
+   for (i=start,j=start; i < TransSz; i++){
       if (TransAry[i] != invalid){
          if (TransAry[i] == BranchIt) PvtTransAry[j] = TransAry[i];
          else PvtTransAry[j] = FreqMap[TransAry[i]];
          j++;
       }
    }
-   TransAry = PvtTransAry;
-   TransSz = j;
-
-   //cout << "NEW " << endl;
-   //for (i=0; i < TransSz; i++)
-   //   cout << TransAry[i] << " ";
-   //cout << endl;
+      TransAry = PvtTransAry;
+      TransSz = j;
 }
 
 void Dbase_Ctrl_Blk::print_trans(){

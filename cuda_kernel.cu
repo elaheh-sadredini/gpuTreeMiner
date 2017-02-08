@@ -31,7 +31,7 @@ static __device__ int find_count(Tree& tr, Tree& can, MatchData* data) {
 
 	int count = 0;
 
-	while (!(matched_count==0 &&tr_index==tr.size)) {
+	while (!(matched_count==0 && tr_index==tr.size)) {
 		if (tr_index == tr.size) {
 			matched_count--;
 			tr_index = data[matched_count].index_in_tree + 1;
