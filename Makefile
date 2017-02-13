@@ -71,15 +71,15 @@ endif
 else
   GCC ?= g++
 endif
-NVCC := $(CUDA_PATH)/bin/nvcc -ccbin $(GCC)
+NVCC := $(CUDA_PATH)/bin/nvcc -ccbin $(GCC) 
 
 # internal flags
-NVCCFLAGS   := -m${OS_SIZE}
+NVCCFLAGS   := -m${OS_SIZE} 
 CCFLAGS     := -O3
 LDFLAGS     :=
 
 # Extra user flags
-EXTRA_NVCCFLAGS   ?=
+EXTRA_NVCCFLAGS   ?= #-Xptxas -dlcm=cg
 EXTRA_LDFLAGS     ?=
 EXTRA_CCFLAGS     ?=
 
@@ -170,7 +170,7 @@ hashtree.o:hashtree.cpp
 
 stats.o:stats.cpp
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-	
+
 treeminer.o:treeminer.cu
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
@@ -191,4 +191,4 @@ clean:
 
 clobber: clean
 
-	
+

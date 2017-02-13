@@ -992,7 +992,7 @@ void get_Fk() {
 		candidate_generation(iter, CandK, candcnt);
 
 		cand_h = create_cand_array(candcnt,iter);
-		cout << "candidate array: " << endl;
+		//cout << "candidate array: " << endl;
 		//print_array(cand_h, candcnt*(2*iter-1));
 
 		if (candcnt > 0) {
@@ -1021,11 +1021,11 @@ void get_Fk() {
 			if (prune_type == prune)
 				FK.clearall();
 
-			for(int i=0; i<candcnt; i++){
+			// for(int i=0; i<candcnt; i++){
 
-				cout << freq_result_d[i] << " ";
-			}
-			cout << endl;
+			// 	cout << freq_result_d[i] << " ";
+			// }
+			// cout << endl;
 			if (prune_type == prune){
 				//FK.clearall();
 				erase_set(freq_cand);
@@ -1143,7 +1143,12 @@ int main(int argc, char **argv) {
 }
 
 //TODOs
-//After pruning, check the number of nodes are more than 2, not the array size
 //Sorting the tree --> add convergence + delete kardane size koochik ba bozorg shodane candidates ha
 //Atomic add --> c
+
+//optimizations
+//After pruning, check the number of nodes are more than 2, not the array size
+//TODOs
+//Compiler flags
+//Testing weighted support
 

@@ -89,7 +89,7 @@ static __device__ int find_count(Tree& tr, Tree& can, MatchData* data) {
 			if (matched_count + 1 == cand_size) {
 				//matched_count++;
 				count++;
-				//return 1;
+				return 1;
 			} else {
 				matched_count++;
 				can_index++;
