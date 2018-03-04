@@ -1,47 +1,48 @@
-# GPU-TreeMiner
-BFS implementation of frequent subtree mining on the GPU
+# GPUTreeMiner
+BFS implementation of frequent subtree mining on the GPU. It uses shared memory for the generated subtree candidates. GPUTreeMiner provides pruning huristics and both weighted (counts a candidate subtree multiple times in a tree) and unique_count options (counts a candidate subtree once in a tree). 
 
- -- having the candidates in the shared memory 
- -- implemented based-on Zaki's implementation
+
+This code uses [TreeMiner](http://www.cs.rpi.edu/~zaki/www-new/pmwiki.php/Software/Software#toc14) as the base for CPU implementation. 
 
 ## Usage:
 
 `1. make`
 
-`2. ./gsp_cpu <frequency> <input file> <Dumping results (yes = 1, No = 0)> <Allow gap between itemsets (yes = 1, No = 0)>`
---weighted, prune, ...
+`2. ./gpuTreeMiner -i<input_file> -s<support> -o<print output> -p<prune> -u<unique counting>`
+
+        -i,      dataset of trees
+        -s,      support threshold between (0,1)
+        -o,      <True> if printing the freuqnt subtrees. Default is <False>
+        -p,      <True> if pruning the database, <False> otherwise. Default is <True>
+        -u,      <True> if counting the subtree matches once per tree, <False> if weighted counting. Default is <True>
+
 
 You can set "Allow gap between itemsets" to "0" in order to mine the frequent consequtive itemsets. 
 
 
 
 ## Input format:
+The input must be in the following format:
+
+        id id length string_encoding
+
+where id is repeated twice (the same value for the tree number), 
+length is the number of items to follow on the line, and
+string_encoding is the coding of the tree 
+
 
 **Sample input file**
 
-        1 2 -1 3 4 -1 -2
-        5 6 -1 -2
-        -2
+        0 0 7 1 2 -1 3 4 -1 -1
+        1 1 11 2 1 2 -1 4 -1 -1 2 -1 3 -1
+        2 2 15 1 3 2 -1 -1 5 1 2 -1 3 4 -1 -1 -1 -1
         
-'-1' is a delimiter between itemsets.
+Trees are in pre-order travesal and -1 shows a backtrack. 
 
-'-2' is a delimiter betweeen sequences.
-
-'-2' should be added to the last line.
+The first tree's string encoding has length 7 (including -1's), and so on.
+This database has 3 trees.
         
-        
-        
-**Sample output file**
-
-        1-2--1-3
-        5--1
-
-
-'-' is a delimiter to separate items in one itemset (subsequence).
-'--' is a delimiter to separate itemsets in the sequence.
-
-
-
+ 
 ## Contact:
 
 elaheh@virginia.edu
@@ -52,4 +53,3 @@ Please cite the following papers if you are using this tool for your research.
 
 [\[1\] Elaheh Sadredini, Reza Rahimi, Ke Wang, and Kevin Skadron. "Frequent Subtree Mining on the Automata Processor: Opportunities
 and Challenges." ACM International Conference on Supercomputing (ICS), Chicago, June 2017](http://www.cs.virginia.edu/~skadron/Papers/sadredini_ics17.pdf) 
-
