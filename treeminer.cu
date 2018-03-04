@@ -20,13 +20,13 @@
 
 #include "cuda_kernel.cu"
 
-//Reza
+//GPU variables
 //uint32_t* begin_block_map=NULL;
 int warp_size=0;
 int shared_memory_size=0; // in bytes
 int node_size=-1;
 int block_dim=512;
-int maxNodeSz=13; //TODO should be an input argument
+int maxNodeSz=200;
 int blk_max_size=0;
 
 //Timing
@@ -35,12 +35,6 @@ double kernel_time;
 TimeTracker preproc_tt;
 double preproc_time;
 
-
-//Elaheh
-typedef vector<bool> bit_vector;
-int tot_trans_cnt=0; //total number of valid transactions
-map<int, int> treeSz_loc_mp; //each set of tree size ends where in the DB_array
-
 //global vars
 string *infile;
 HashTree *CandK = NULL;
@@ -48,6 +42,9 @@ FreqHT FK;
 Dbase_Ctrl_Blk *DCB;
 Stats stats;
 
+typedef vector<bool> bit_vector;
+int tot_trans_cnt=0; //total number of valid transactions
+map<int, int> treeSz_loc_mp; //each set of tree size ends where in the DB_array
 
 double MINSUP_PER;
 int MINSUPPORT = -1;
@@ -77,8 +74,13 @@ void parse_args(int argc, char **argv) {
 	extern char * optarg;
 	int c;
 
-	if (argc < 2){
-		cout << "usage: treeminer -i<infile> -s <support>\n";
+	if (argc < 5){
+		cout << "usage: gpuTreeMiner -i<input_file> -s<support> -o<print output> -p<prune> -u<unique counting>\n";
+		cout << " -i,      dataset of trees\n";
+		cout << " -s,      support threshold between (0,1)\n";
+		cout << " -o,      <True> if printing the freuqnt subtrees. Default is <False> \n";
+		cout << " -p,      <True> if pruning the database, <False> otherwise. Default is <True> \n";
+		cout << " -u,      <True> if counting the subtree matches once per tree, <False> if weighted counting. Default is <True> \n";
 		exit(0);
 	}
 	else {
@@ -117,7 +119,7 @@ void parse_args(int argc, char **argv) {
 	}
 }
 
-void erase_set(set<vector<int> > &freq_set){ //TODO: delete the elements of the set
+void erase_set(set<vector<int> > &freq_set){ 
 //
 //	for(set<vector<int>* >::iterator it = freq_set.begin(); it != freq_set.end(); it++){
 //        //vector<int>* tmp = *it;
@@ -248,7 +250,6 @@ void get_F2() {
 		}
 	}
 
-	//Elaheh
 	//Creating DB array
 	DCB->DB_array = new int*[DBASE_NUM_TRANS];
 	multimap<int, int> tree_sz_mp; //key: size of the tree, value: list of tree of that size. For sorting the dataset
@@ -410,10 +411,6 @@ void add_node(int iter, Eqclass *neq, int val, int pos) {
 	}
 	cand.push_back(val);
 
-	//cout << cand << endl;
-	//if(cand[0] == 0 && cand[1] ==  1 && cand[2] == 2 && cand[3] == -1 && cand[4] == 3){
-	//	cout << "now here: " << endl;
-	//}
 
 	int cnt=0;
 	vector<int> candTmp;
@@ -492,67 +489,6 @@ void add_node(int iter, Eqclass *neq, int val, int pos) {
 	//cout << "pos: " << pos << endl;
 	//cout << "val: " << val << endl;
 	neq->add_node(val, pos);
-
-	//check subtrees
-	/*int omita, omitb;
-	bool res = true;
-	//omit i-th item (omita) and associated BranchIt (omitb)
-	int i, j, k;
-
-	for (i = iter - 3; i >= 0; i--) {
-		//find pos for i-th item
-		for (j = 0, k = 0; j < cand.size(); j++) {
-			if (cand[j] != BranchIt) {
-				if (k == i) {
-					omita = j;
-					break;
-				} else
-					k++;
-			}
-		}
-
-		//find pos for associated BranchIt
-		scnt = 0;
-		for (j++; j < cand.size() && scnt >= 0; j++) {
-			if (cand[j] == BranchIt)
-				scnt--;
-			else
-				scnt++;
-		}
-		if (scnt >= 0)
-			omitb = cand.size();
-		else
-			omitb = j - 1;
-
-		//cout << "OMIT " << i << " " << omita << " " << omitb << endl;
-		bool rootless = false;
-		scnt = 0;
-		hval = 0;
-		subtree.clear();
-		for (k = 0; k < cand.size() && !rootless; k++) {
-			if (k != omita && k != omitb) {
-				subtree.push_back(cand[k]);
-				if (cand[k] != BranchIt) {
-					hval += cand[k];
-					scnt++;
-				} else
-					scnt--;
-				if (scnt <= 0)
-					rootless = true;
-			}
-		}
-
-		if (!rootless) {
-			res = FK.find(subtree, hval);
-			//cout << ((res)? " FOUND\n":"NOTFOUND\n");
-			if (!res)
-				return; //subtree not found!
-		}
-	}
-
-	//all subtrees frequent were found, add to cand class
-	if (res)
-		neq->add_node(val, pos);*/
 }
 
 void cand_gen(int iter, Eqclass &eq, list<Eqclass *> &neweql) {
@@ -582,14 +518,6 @@ void cand_gen(int iter, Eqclass &eq, list<Eqclass *> &neweql) {
 			}
 		}
 		if (!neq->nlist().empty()) {
-            
-            ///////////////////////////////////////
-            //Elaheh
-//            if(iter>3){ //It shoul be deep copy //TODO
-//                neq->embeddingList = ni->embeddingList;
-//                neq->occuringPos = ni->occuringPos;
-//            }
-            ///////////////////////////////////////
             
 			neweql.push_back(neq);
 			//cout << "NEQCLAS " << *neq << endl;
@@ -1021,11 +949,6 @@ void get_Fk() {
 			if (prune_type == prune)
 				FK.clearall();
 
-			// for(int i=0; i<candcnt; i++){
-
-			// 	cout << freq_result_d[i] << " ";
-			// }
-			// cout << endl;
 			if (prune_type == prune){
 				//FK.clearall();
 				erase_set(freq_cand);
@@ -1141,14 +1064,4 @@ int main(int argc, char **argv) {
 
 	exit(0);
 }
-
-//TODOs
-//Sorting the tree --> add convergence + delete kardane size koochik ba bozorg shodane candidates ha
-//Atomic add --> c
-
-//optimizations
-//After pruning, check the number of nodes are more than 2, not the array size
-//TODOs
-//Compiler flags
-//Testing weighted support
 

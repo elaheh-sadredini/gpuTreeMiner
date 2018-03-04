@@ -154,7 +154,7 @@ GENCODE_FLAGS   ?= $(GENCODE_SM10) $(GENCODE_SM20) $(GENCODE_SM30) $(GENCODE_SM3
 # Target rules
 all: build
 
-build: ftm_gpu_shared
+build: gpuTreeMiner
 
 calcdb.o:calcdb.cpp
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
@@ -177,17 +177,17 @@ treeminer.o:treeminer.cu
 cuda_kernel.o:cuda_kernel.cu
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-ftm_gpu_shared: calcdb.o eqclass.o hashtree.o stats.o treeminer.o cuda_kernel.o
+gpuTreeMiner: calcdb.o eqclass.o hashtree.o stats.o treeminer.o cuda_kernel.o
 	$(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 	mkdir -p ../../bin/$(OS_ARCH)/$(OSLOWER)/$(TARGET)$(if $(abi),/$(abi))
 	cp $@ ../../bin/$(OS_ARCH)/$(OSLOWER)/$(TARGET)$(if $(abi),/$(abi))
 
 run: build
-	./ftm_gpu_shared
+	./gpuTreeMiner
 
 clean:
-	rm -f ftm_gpu_shared calcdb.o eqclass.o hashtree.o stats.o treeminer.o cuda_kernel.o
-	rm -rf ../../bin/$(OS_ARCH)/$(OSLOWER)/$(TARGET)$(if $(abi),/$(abi))/ftm_gpu_shared
+	rm -f gpuTreeMiner calcdb.o eqclass.o hashtree.o stats.o treeminer.o cuda_kernel.o
+	rm -rf ../../bin/$(OS_ARCH)/$(OSLOWER)/$(TARGET)$(if $(abi),/$(abi))/gpuTreeMiner
 
 clobber: clean
 
